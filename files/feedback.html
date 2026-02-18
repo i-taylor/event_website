@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Feedback</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-block"></div>
+    <span class="topbar-label">University of Michigan · Annual Conference</span>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <h1>What <em>Attendees</em> Are Saying</h1>
+      <p class="subtitle">Public responses only. Upvote the feedback you agree with most.</p>
+      <nav>
+        <a href="submit.html">Submit</a>
+        <a href="feedback.html" class="active">View Responses</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="controls">
+      <span class="controls-label">Sort by</span>
+      <button class="sort-btn active" data-sort="top">▲ Top</button>
+      <button class="sort-btn" data-sort="new">🕒 New</button>
+    </div>
+
+    <!--
+      BACKEND: swap getSubmissions() in script.js with your API call, e.g.:
+      const { data } = await supabase.from('submissions')
+        .select('*').eq('visibility','public')
+    -->
+    <div id="feedback-container"></div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

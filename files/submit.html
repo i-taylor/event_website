@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Feedback</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-block"></div>
+    <span class="topbar-label">University of Michigan · Annual Conference</span>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <h1>Share Your <em>Feedback</em></h1>
+      <p class="subtitle">Help us make the next event even better. Your input shapes what comes next.</p>
+      <nav>
+        <a href="submit.html" class="active">Submit</a>
+        <a href="feedback.html">View Responses</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <div id="msg" class="msg" role="alert"></div>
+
+      <form id="submit-form" novalidate>
+
+        <!-- Prompt — populated by JS from PROMPTS array -->
+        <div class="form-group">
+          <label for="prompt">Question</label>
+          <select id="prompt" required></select>
+        </div>
+
+        <!-- Feedback textarea -->
+        <div class="form-group">
+          <label for="feedback">Your Response</label>
+          <textarea
+            id="feedback"
+            placeholder="Be as specific or as brief as you like…"
+            maxlength="2000"
+            required
+          ></textarea>
+        </div>
+
+        <!-- Optional name -->
+        <div class="form-group">
+          <label for="author">Your Name <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — leave blank to stay anonymous)</span></label>
+          <input type="text" id="author" placeholder="Jane Smith" maxlength="80" />
+        </div>
+
+        <!-- Visibility toggle -->
+        <div class="form-group">
+          <label>Visibility</label>
+          <div class="toggle-group" id="vis-toggle">
+            <button type="button" data-val="public" class="active">🌐 Public</button>
+            <button type="button" data-val="private">🔒 Private</button>
+          </div>
+          <!-- Private = saved but never shown on the public board -->
+        </div>
+
+        <button type="submit" class="btn-primary">Submit Feedback →</button>
+
+      </form>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
