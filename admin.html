@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Event Feedback</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Admin-specific styles ── */
+    .admin-max { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 0; }
+
+    /* Login screen */
+    #login-screen {
+      min-height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2rem;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .login-card .lock { font-size: 2.5rem; margin-bottom: 1rem; }
+    .login-card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--blue);
+      margin-bottom: .35rem;
+    }
+    .login-card p { color: var(--muted); font-size: .875rem; margin-bottom: 1.5rem; }
+    .login-card input[type="password"] {
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      padding: .85rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      margin-bottom: .75rem;
+      text-align: center;
+      letter-spacing: .15em;
+    }
+    .login-card input[type="password"]:focus {
+      outline: none;
+      border-color: var(--blue-mid);
+      box-shadow: 0 0 0 3px rgba(0,63,122,.1);
+    }
+    .login-error {
+      color: #b91c1c;
+      font-size: .85rem;
+      margin-top: .25rem;
+      min-height: 1.2em;
+    }
+
+    /* Admin dashboard */
+    #admin-screen { display: none; }
+
+    .admin-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .admin-toolbar select {
+      max-width: 280px;
+      padding: .5rem .9rem;
+      font-size: .875rem;
+    }
+
+    .btn-export {
+      padding: .55rem 1.2rem;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Inter', sans-serif;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      margin-left: auto;
+    }
+    .btn-export:hover { background: var(--blue-mid); }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .85rem 1.25rem;
+      flex: 1;
+      min-width: 120px;
+      box-shadow: var(--shadow);
+    }
+    .stat-val {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: var(--blue);
+      line-height: 1;
+      margin-bottom: .2rem;
+    }
+    .stat-label { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Admin table */
+    .admin-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    thead {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    thead th {
+      padding: .9rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+
+    tbody td {
+      padding: .85rem 1rem;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .badge-public  { background: #e6f9ee; color: #166534; }
+    .badge-private { background: var(--maize-light); color: #7a5700; }
+
+    .col-text { max-width: 320px; }
+    .col-text p { 
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .btn-delete {
+      padding: .35rem .75rem;
+      background: #fdecea;
+      color: #b91c1c;
+      border: 1px solid #fbc8c4;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn-delete:hover { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+
+    .btn-delete.confirming {
+      background: #b91c1c;
+      color: #fff;
+      border-color: #b91c1c;
+      animation: pulse .4s ease;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+    }
+
+    /* Mobile: stack table */
+    @media (max-width: 640px) {
+      thead { display: none; }
+      tbody tr {
+        display: block;
+        padding: 1rem;
+        border-bottom: 2px solid var(--border);
+      }
+      tbody td {
+        display: block;
+        padding: .2rem 0;
+        border: none;
+      }
+      tbody td::before {
+        content: attr(data-label) ': ';
+        font-weight: 700;
+        color: var(--muted);
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+      }
+      .col-text { max-width: 100%; }
+      .admin-toolbar select { max-width: 100%; }
+      .btn-export { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-block"></div>
+    <span class="topbar-label">University of Michigan · Annual Conference</span>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <h1>Admin <em>Dashboard</em></h1>
+      <p class="subtitle">Manage all submissions. Restricted access only.</p>
+      <nav>
+        <a href="index.html">Submit</a>
+        <a href="feedback.html">View Responses</a>
+        <a href="admin.html" class="active">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Login screen ── -->
+  <div class="admin-max">
+    <div id="login-screen">
+      <div class="login-card">
+        <div class="lock">🔐</div>
+        <h2>Admin Access</h2>
+        <p>Enter the admin password to continue.</p>
+        <input type="password" id="password-input" placeholder="••••••••" autocomplete="current-password" />
+        <div class="login-error" id="login-error"></div>
+        <button class="btn-primary" id="login-btn" style="margin-top:.5rem">Unlock →</button>
+      </div>
+    </div>
+
+    <!-- ── Admin dashboard ── -->
+    <div id="admin-screen">
+
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat"><div class="stat-val" id="stat-total">–</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-val" id="stat-public">–</div><div class="stat-label">Public</div></div>
+        <div class="stat"><div class="stat-val" id="stat-private">–</div><div class="stat-label">Private</div></div>
+        <div class="stat"><div class="stat-val" id="stat-upvotes">–</div><div class="stat-label">Total Upvotes</div></div>
+      </div>
+
+      <div class="admin-toolbar">
+        <select id="filter-prompt">
+          <option value="all">All Questions</option>
+        </select>
+        <select id="filter-vis">
+          <option value="all">Public & Private</option>
+          <option value="public">Public only</option>
+          <option value="private">Private only</option>
+        </select>
+        <button class="btn-export" id="export-btn">⬇ Export CSV</button>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Author</th>
+              <th>Question</th>
+              <th>Response</th>
+              <th>Visibility</th>
+              <th>Upvotes</th>
+              <th>Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
