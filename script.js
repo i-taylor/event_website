@@ -69,6 +69,14 @@ async function dbGetPublic() {
   return res.json();
 }
 
+async function dbDelete(id) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}`, {
+    method:  'DELETE',
+    headers: HEADERS,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 async function dbUpvote(id) {
   // Uses Supabase RPC to atomically increment — avoids race conditions
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_upvote`, {
@@ -98,6 +106,55 @@ function timeAgo(ts) {
   if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
+}
+
+const UNDO_SECONDS = 5;
+
+function showUndo(el, id) {
+  let remaining = UNDO_SECONDS;
+  let deleted = false;
+
+  el.innerHTML = `
+    ✓ Submitted!
+    <button id="undo-btn" style="
+      margin-left:.75rem;
+      padding:.2rem .75rem;
+      background:transparent;
+      border:1.5px solid currentColor;
+      border-radius:6px;
+      font-family:inherit;
+      font-size:.85rem;
+      font-weight:700;
+      cursor:pointer;
+      color:inherit;
+    ">Undo <span id="undo-timer">(${remaining}s)</span></button>`;
+  el.className = 'msg success show';
+
+  const timer = setInterval(() => {
+    remaining--;
+    const timerEl = document.getElementById('undo-timer');
+    if (timerEl) timerEl.textContent = `(${remaining}s)`;
+    if (remaining <= 0) {
+      clearInterval(timer);
+      if (!deleted) el.classList.remove('show');
+    }
+  }, 1000);
+
+  document.getElementById('undo-btn').addEventListener('click', async () => {
+    clearInterval(timer);
+    deleted = true;
+    el.innerHTML = '⏳ Removing your submission…';
+    try {
+      await dbDelete(id);
+      el.innerHTML = '✓ Submission removed.';
+      setTimeout(() => el.classList.remove('show'), 2500);
+    } catch (err) {
+      console.error(err);
+      el.innerHTML = '❌ Could not undo. Please contact an organiser.';
+      el.className = 'msg error show';
+      setTimeout(() => el.classList.remove('show'), 4000);
+    }
+  });
 }
 
 function showMsg(el, text, type) {
@@ -156,8 +213,9 @@ function initSubmitPage() {
     submitBtn.textContent = 'Submitting…';
 
     try {
+      const newId = uid();
       await dbInsert({
-        id:         uid(),
+        id:         newId,
         prompt_idx: Number(promptSel.value),
         prompt:     PROMPTS[Number(promptSel.value)],
         text,
@@ -167,8 +225,6 @@ function initSubmitPage() {
         timestamp:  Date.now(),
       });
 
-      showMsg(msgEl, '✓ Thank you — your feedback has been submitted!', 'success');
-
       // Reset form
       feedbackEl.value = '';
       authorEl.value   = '';
@@ -176,6 +232,9 @@ function initSubmitPage() {
       visibility = 'public';
       visToggle.querySelectorAll('button')
         .forEach((b, i) => b.classList.toggle('active', i === 0));
+
+      // Show undo bar
+      showUndo(msgEl, newId);
 
     } catch (err) {
       console.error(err);
