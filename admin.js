@@ -28,63 +28,58 @@ let allRows      = [];
 let filterPrompt = 'all';
 let filterVis    = 'all';
 
-// ── Boot ─────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const loginScreen  = document.getElementById('login-screen');
-  const adminScreen  = document.getElementById('admin-screen');
-  const passwordInput = document.getElementById('password-input');
-  const loginBtn     = document.getElementById('login-btn');
-  const loginError   = document.getElementById('login-error');
+// ── Boot (runs directly — scripts are at bottom of body) ─────
 
-  // Auto-login if already authed this session
-  if (sessionStorage.getItem(ADMIN_SESSION) === 'yes') {
+const loginScreen   = document.getElementById('login-screen');
+const adminScreen   = document.getElementById('admin-screen');
+const passwordInput = document.getElementById('password-input');
+const loginBtn      = document.getElementById('login-btn');
+const loginError    = document.getElementById('login-error');
+
+function tryLogin() {
+  if (passwordInput.value === ADMIN_PASSWORD) {
+    sessionStorage.setItem(ADMIN_SESSION, 'yes');
+    loginError.textContent = '';
     showAdmin();
+  } else {
+    loginError.textContent = 'Incorrect password. Try again.';
+    passwordInput.value = '';
+    passwordInput.focus();
   }
+}
 
-  // Login
-  function tryLogin() {
-    if (passwordInput.value === ADMIN_PASSWORD) {
-      sessionStorage.setItem(ADMIN_SESSION, 'yes');
-      loginError.textContent = '';
-      showAdmin();
-    } else {
-      loginError.textContent = 'Incorrect password. Try again.';
-      passwordInput.value = '';
-      passwordInput.focus();
-    }
-  }
+function showAdmin() {
+  loginScreen.style.display = 'none';
+  adminScreen.style.display = 'block';
+  loadData();
+}
 
-  loginBtn.addEventListener('click', tryLogin);
-  passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+loginBtn.addEventListener('click', tryLogin);
+passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-  function showAdmin() {
-    loginScreen.style.display = 'none';
-    adminScreen.style.display = 'block';
-    loadData();
-  }
-
-  // Filters
-  document.getElementById('filter-prompt').addEventListener('change', e => {
-    filterPrompt = e.target.value;
-    renderTable();
-  });
-  document.getElementById('filter-vis').addEventListener('change', e => {
-    filterVis = e.target.value;
-    renderTable();
-  });
-
-  // Export
-  document.getElementById('export-btn').addEventListener('click', exportCSV);
-
-  // Populate prompt filter
-  const promptFilter = document.getElementById('filter-prompt');
-  PROMPTS.forEach((p, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = `Q${i + 1}: ${p.slice(0, 45)}…`;
-    promptFilter.appendChild(opt);
-  });
+document.getElementById('filter-prompt').addEventListener('change', e => {
+  filterPrompt = e.target.value;
+  renderTable();
 });
+document.getElementById('filter-vis').addEventListener('change', e => {
+  filterVis = e.target.value;
+  renderTable();
+});
+document.getElementById('export-btn').addEventListener('click', exportCSV);
+
+// Populate prompt filter dropdown
+const promptFilter = document.getElementById('filter-prompt');
+PROMPTS.forEach((p, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `Q${i + 1}: ${p.slice(0, 45)}…`;
+  promptFilter.appendChild(opt);
+});
+
+// Auto-login if already authed this session
+if (sessionStorage.getItem(ADMIN_SESSION) === 'yes') {
+  showAdmin();
+}
 
 // ── Load data ────────────────────────────────────────────────
 async function loadData() {
