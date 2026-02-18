@@ -1,12 +1,22 @@
 /* =========================================================
    EVENT FEEDBACK — script.js
-   Data stored in localStorage.
-   Search "BACKEND:" to find swap points for a real API.
+   Backend: Supabase
    ========================================================= */
 
 'use strict';
 
-// ── Config ───────────────────────────────────────────────────
+// ── Supabase config ──────────────────────────────────────────
+const SUPABASE_URL = 'https://rxskfvquuvxmwrgcnqij.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4c2tmdnF1dXZ4bXdyZ2NucWlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MjkzOTMsImV4cCI6MjA4NzAwNTM5M30.GJJxNpezwq4-Ui5rgZMwj6D6J8zOzIjBvzvi5gtfbZQ';
+
+const HEADERS = {
+  'Content-Type':  'application/json',
+  'apikey':        SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Prefer':        'return=representation',
+};
+
+// ── Prompts ──────────────────────────────────────────────────
 const PROMPTS = [
   "What did you enjoy most about the event?",
   "What could be improved for next time?",
@@ -15,27 +25,18 @@ const PROMPTS = [
   "Would you attend this event again, and why?",
 ];
 
+// ── Profanity filter ─────────────────────────────────────────
 const BANNED_WORDS = [
-  'badword1', 'badword2', // extend this list as needed (keep lowercase)
+  'badword1', 'badword2', // extend as needed (keep lowercase)
 ];
 
-const LS_SUBMISSIONS = 'umich_feedback_submissions';
-const LS_UPVOTES     = 'umich_feedback_upvotes';
-
-// ── Storage helpers ──────────────────────────────────────────
-
-// BACKEND: replace with API GET
-function getSubmissions() {
-  try { return JSON.parse(localStorage.getItem(LS_SUBMISSIONS)) || []; }
-  catch { return []; }
+function containsProfanity(text) {
+  const lower = text.toLowerCase();
+  return BANNED_WORDS.some(w => lower.includes(w));
 }
 
-// BACKEND: replace with API POST
-function saveSubmission(entry) {
-  const all = getSubmissions();
-  all.push(entry);
-  localStorage.setItem(LS_SUBMISSIONS, JSON.stringify(all));
-}
+// ── localStorage (upvote dedup only) ─────────────────────────
+const LS_UPVOTES = 'umich_feedback_upvotes';
 
 function getVotedIds() {
   try { return new Set(JSON.parse(localStorage.getItem(LS_UPVOTES)) || []); }
@@ -43,33 +44,46 @@ function getVotedIds() {
 }
 
 function markVoted(id) {
-  // BACKEND: server-side dedup by session/IP; this is client-only
   const voted = getVotedIds();
   voted.add(id);
   localStorage.setItem(LS_UPVOTES, JSON.stringify([...voted]));
 }
 
-// BACKEND: replace with API PATCH / RPC
-function incrementUpvote(id) {
-  const all  = getSubmissions();
-  const item = all.find(s => s.id === id);
-  if (item) {
-    item.upvotes = (item.upvotes || 0) + 1;
-    localStorage.setItem(LS_SUBMISSIONS, JSON.stringify(all));
-    return item.upvotes;
-  }
-  return 0;
+// ── Supabase API helpers ─────────────────────────────────────
+
+async function dbInsert(entry) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+    method:  'POST',
+    headers: HEADERS,
+    body:    JSON.stringify(entry),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function dbGetPublic() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/submissions?visibility=eq.public&select=*`,
+    { headers: HEADERS }
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function dbUpvote(id) {
+  // Uses Supabase RPC to atomically increment — avoids race conditions
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_upvote`, {
+    method:  'POST',
+    headers: HEADERS,
+    body:    JSON.stringify({ submission_id: id }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json(); // returns new upvote count
 }
 
 // ── Utilities ────────────────────────────────────────────────
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-function containsProfanity(text) {
-  const lower = text.toLowerCase();
-  return BANNED_WORDS.some(w => lower.includes(w));
 }
 
 function escHtml(str) {
@@ -96,14 +110,15 @@ function showMsg(el, text, type) {
 // ── submit.html ──────────────────────────────────────────────
 
 function initSubmitPage() {
-  const form        = document.getElementById('submit-form');
+  const form = document.getElementById('submit-form');
   if (!form) return;
 
-  const promptSel   = document.getElementById('prompt');
-  const feedbackEl  = document.getElementById('feedback');
-  const authorEl    = document.getElementById('author');
-  const visToggle   = document.getElementById('vis-toggle');
-  const msgEl       = document.getElementById('msg');
+  const promptSel  = document.getElementById('prompt');
+  const feedbackEl = document.getElementById('feedback');
+  const authorEl   = document.getElementById('author');
+  const visToggle  = document.getElementById('vis-toggle');
+  const msgEl      = document.getElementById('msg');
+  const submitBtn  = form.querySelector('.btn-primary');
 
   // Populate prompts dropdown
   PROMPTS.forEach((p, i) => {
@@ -113,7 +128,7 @@ function initSubmitPage() {
     promptSel.appendChild(opt);
   });
 
-  // Visibility state
+  // Visibility toggle
   let visibility = 'public';
   visToggle.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -123,7 +138,7 @@ function initSubmitPage() {
     });
   });
 
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
     const text   = feedbackEl.value.trim();
     const author = authorEl.value.trim() || 'Anonymous';
@@ -137,27 +152,38 @@ function initSubmitPage() {
         'error');
     }
 
-    const entry = {
-      id:        uid(),
-      promptIdx: Number(promptSel.value),
-      prompt:    PROMPTS[Number(promptSel.value)],
-      text,
-      author,
-      visibility,
-      upvotes:   0,
-      timestamp: Date.now(),
-    };
+    submitBtn.disabled    = true;
+    submitBtn.textContent = 'Submitting…';
 
-    saveSubmission(entry); // BACKEND: swap this line with your API call
-    showMsg(msgEl, '✓ Thank you — your feedback has been submitted!', 'success');
+    try {
+      await dbInsert({
+        id:         uid(),
+        prompt_idx: Number(promptSel.value),
+        prompt:     PROMPTS[Number(promptSel.value)],
+        text,
+        author,
+        visibility,
+        upvotes:    0,
+        timestamp:  Date.now(),
+      });
 
-    // Reset
-    feedbackEl.value = '';
-    authorEl.value   = '';
-    promptSel.selectedIndex = 0;
-    visibility = 'public';
-    visToggle.querySelectorAll('button')
-      .forEach((b, i) => b.classList.toggle('active', i === 0));
+      showMsg(msgEl, '✓ Thank you — your feedback has been submitted!', 'success');
+
+      // Reset form
+      feedbackEl.value = '';
+      authorEl.value   = '';
+      promptSel.selectedIndex = 0;
+      visibility = 'public';
+      visToggle.querySelectorAll('button')
+        .forEach((b, i) => b.classList.toggle('active', i === 0));
+
+    } catch (err) {
+      console.error(err);
+      showMsg(msgEl, '❌ Something went wrong. Please try again.', 'error');
+    } finally {
+      submitBtn.disabled    = false;
+      submitBtn.textContent = 'Submit Feedback →';
+    }
   });
 }
 
@@ -168,6 +194,7 @@ function initFeedbackPage() {
   if (!container) return;
 
   let sortMode = 'top';
+  let allData  = [];
 
   document.querySelectorAll('.sort-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -178,13 +205,19 @@ function initFeedbackPage() {
     });
   });
 
-  render();
+  // Initial load
+  container.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><p>Loading feedback…</p></div>`;
+
+  dbGetPublic().then(data => {
+    allData = data;
+    render();
+  }).catch(err => {
+    console.error(err);
+    container.innerHTML = `<div class="empty"><div class="empty-icon">❌</div><p>Could not load feedback. Please refresh.</p></div>`;
+  });
 
   function render() {
-    // BACKEND: replace getSubmissions() with your fetch call
-    const all = getSubmissions().filter(s => s.visibility === 'public');
-
-    if (!all.length) {
+    if (!allData.length) {
       container.innerHTML = `
         <div class="empty">
           <div class="empty-icon">💬</div>
@@ -194,7 +227,7 @@ function initFeedbackPage() {
     }
 
     // Sort
-    const sorted = [...all].sort((a, b) =>
+    const sorted = [...allData].sort((a, b) =>
       sortMode === 'top'
         ? (b.upvotes || 0) - (a.upvotes || 0)
         : b.timestamp - a.timestamp
@@ -204,7 +237,7 @@ function initFeedbackPage() {
     const groups = {};
     PROMPTS.forEach((_, i) => { groups[i] = []; });
     sorted.forEach(s => {
-      if (groups[s.promptIdx] !== undefined) groups[s.promptIdx].push(s);
+      if (groups[s.prompt_idx] !== undefined) groups[s.prompt_idx].push(s);
     });
 
     const voted = getVotedIds();
@@ -244,18 +277,28 @@ function initFeedbackPage() {
       container.appendChild(section);
     });
 
-    // Upvote handler (event delegation)
-    container.addEventListener('click', e => {
+    // Upvote handler
+    container.addEventListener('click', async e => {
       const btn = e.target.closest('.upvote-btn');
       if (!btn || btn.classList.contains('voted')) return;
 
-      const id      = btn.dataset.id;
-      const updated = incrementUpvote(id); // BACKEND: API call here
-      markVoted(id);
-
-      btn.classList.add('voted');
+      const id = btn.dataset.id;
       btn.disabled = true;
-      btn.querySelector('.count').textContent = updated;
+
+      try {
+        const newCount = await dbUpvote(id);
+        markVoted(id);
+        btn.classList.add('voted');
+        btn.querySelector('.count').textContent = newCount;
+
+        // Update local cache so re-sorts stay accurate
+        const item = allData.find(s => s.id === id);
+        if (item) item.upvotes = newCount;
+
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false; // re-enable if it failed
+      }
     });
   }
 }
