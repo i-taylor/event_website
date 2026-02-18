@@ -13,7 +13,7 @@ const HEADERS = {
   'Content-Type':  'application/json',
   'apikey':        SUPABASE_KEY,
   'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Prefer':        'return=representation',
+  'Prefer':        'return=minimal',
 };
 
 // ── Prompts ──────────────────────────────────────────────────
@@ -107,7 +107,7 @@ function showMsg(el, text, type) {
   el._t = setTimeout(() => el.classList.remove('show'), 5500);
 }
 
-// ── index.html ──────────────────────────────────────────────
+// ── submit.html ──────────────────────────────────────────────
 
 function initSubmitPage() {
   const form = document.getElementById('submit-form');
