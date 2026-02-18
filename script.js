@@ -107,7 +107,7 @@ function showMsg(el, text, type) {
   el._t = setTimeout(() => el.classList.remove('show'), 5500);
 }
 
-// ── submit.html ──────────────────────────────────────────────
+// ── index.html ──────────────────────────────────────────────
 
 function initSubmitPage() {
   const form = document.getElementById('submit-form');
