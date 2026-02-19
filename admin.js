@@ -1,7 +1,6 @@
 /* =========================================================
    ADMIN — admin.js
    ========================================================= */
-<script src="https://cdn.jsdelivr.net/npm/leo-profanity@1.6.1/src/index.js"></script>
 
 (function() {
   'use strict';

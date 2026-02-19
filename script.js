@@ -26,6 +26,7 @@ const PROMPTS = [
 ];
 
 
+
 function containsProfanity(text) {
   return leoProfanity.check(text);
 }
