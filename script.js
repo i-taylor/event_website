@@ -30,7 +30,6 @@ const BANNED_WORDS = [
   'badword1', 'badword2', // extend as needed (keep lowercase)
 ];
 
-
 function containsProfanity(text) {
   const lower = text.toLowerCase();
   return BANNED_WORDS.some(w => lower.includes(w));
