@@ -26,13 +26,9 @@ const PROMPTS = [
 ];
 
 // ── Profanity filter ─────────────────────────────────────────
-const BANNED_WORDS = [
-  'badword1', 'badword2', // extend as needed (keep lowercase)
-];
-
+// Profanity filter powered by leo-profanity (loaded via CDN in HTML)
 function containsProfanity(text) {
-  const lower = text.toLowerCase();
-  return BANNED_WORDS.some(w => lower.includes(w));
+  return leoProfanity.check(text);
 }
 
 // ── localStorage (upvote dedup only) ─────────────────────────
