@@ -2,7 +2,7 @@
    EVENT FEEDBACK — script.js
    Backend: Supabase
    ========================================================= */
-<script src="https://cdn.jsdelivr.net/npm/leo-profanity@1.6.1/src/index.js"></script>
+
 'use strict';
 
 // ── Supabase config ──────────────────────────────────────────
@@ -25,10 +25,15 @@ const PROMPTS = [
   "Would you attend this event again, and why?",
 ];
 
+// ── Profanity filter ─────────────────────────────────────────
+const BANNED_WORDS = [
+  'badword1', 'badword2', // extend as needed (keep lowercase)
+];
 
 
 function containsProfanity(text) {
-  return leoProfanity.check(text);
+  const lower = text.toLowerCase();
+  return BANNED_WORDS.some(w => lower.includes(w));
 }
 
 // ── localStorage (upvote dedup only) ─────────────────────────
