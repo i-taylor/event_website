@@ -26,9 +26,11 @@ const PROMPTS = [
 ];
 
 // ── Profanity filter ─────────────────────────────────────────
-// Profanity filter powered by leo-profanity (loaded via CDN in HTML)
+// Profanity filter powered by profanity-cleaner (loaded via CDN in HTML)
 function containsProfanity(text) {
-  return leoProfanity.check(text);
+  // profanityCleaner.clean() replaces bad words with ****
+  // if the output differs from input, profanity was found
+  return profanityCleaner.clean(text) !== text;
 }
 
 // ── localStorage (upvote dedup only) ─────────────────────────
